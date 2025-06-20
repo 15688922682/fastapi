@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>一个不完美的 AI </title>
+  <style>
+    :root {
+      --primary: #6d28d9;
+      --primary-hover: #7c3aed;
+      --bg: #0f172a;
+      --bg-light: #1e293b;
+      --bg-lighter: #334155;
+      --text: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --border: #475569;
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #app-header {
+      padding: 16px 24px;
+      background: var(--bg-light);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    #app-title {
+      font-weight: 600;
+      font-size: 18px;
+      background: linear-gradient(90deg, var(--primary), #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    #main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    #chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-light);
+      overflow: hidden;
+    }
+
+    #chat-header {
+      padding: 12px 24px;
+      background: var(--bg-lighter);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    #chat-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    #chat {
+      flex: 1;
+      padding: 20px 24px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    .message-container {
+      display: flex;
+      gap: 12px;
+      margin: 16px 0;
+      max-width: 85%;
+    }
+
+    .user-message {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+
+    .ai-message {
+      margin-right: auto;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      object-fit: cover;
+      background: var(--bg-lighter);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .user-avatar {
+      background: #4f46e5;
+      color: white;
+    }
+
+    .ai-avatar {
+      background: #10b981;
+      color: white;
+    }
+
+    .message-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .msg {
+      word-break: break-word;
+      line-height: 1.6;
+      padding: 12px 16px;
+      border-radius: 12px;
+    }
+
+    .user-msg {
+      color: var(--text);
+      background: var(--bg-lighter);
+      border-radius: 12px 12px 0 12px;
+    }
+
+    .ai-msg {
+      color: var(--text);
+      background: var(--bg);
+      border-radius: 12px 12px 12px 0;
+      border: 1px solid var(--border);
+    }
+
+    .username {
+      font-size: 12px;
+      color: var(--text-secondary);
+      padding: 0 4px;
+    }
+
+    .error {
+      color: var(--error);
+      text-align: center;
+      padding: 12px;
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 8px;
+      margin: 16px auto;
+      max-width: 80%;
+    }
+
+    pre.code-block {
+      background: var(--bg-lighter);
+      border: 1px solid var(--border);
+      padding: 12px;
+      font-family: 'Fira Code', monospace;
+      white-space: pre-wrap;
+      border-radius: 8px;
+      margin: 12px 0;
+      overflow-x: auto;
+      font-size: 14px;
+      color: #e2e8f0;
+    }
+
+    pre.code-block strong {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    #input-container {
+      padding: 16px 24px;
+      background: var(--bg-light);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 0;
+      align-items: center;
+      width: 100%;
+    }
+
+    input[type=text] {
+      flex: 1;
+      min-width: 200px;
+      padding: 12px 16px;
+      font-size: 15px;
+      background: var(--bg-lighter);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    input[type=text]:focus {
+      border-color: var(--primary);
+    }
+
+    select {
+      padding: 12px 16px;
+      font-size: 15px;
+      background: var(--bg-lighter);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type=file] {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 15px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    #generateImageBtn {
+      background: var(--bg-lighter);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    #generateImageBtn:hover {
+      background: var(--bg);
+    }
+
+    #loading {
+      display: none;
+      color: var(--text-secondary);
+      padding: 12px;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .typing-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: 8px;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--text-secondary);
+      border-radius: 50%;
+      animation: typingAnimation 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingAnimation {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.6; }
+      30% { transform: translateY(-4px); opacity: 1; }
+    }
+
+    /* 滚动条样式 */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-light);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+
+    /* 文件上传按钮样式 */
+    input[type="file"]::file-selector-button {
+      padding: 8px 12px;
+      background: var(--bg-lighter);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      cursor: pointer;
+      margin-right: 8px;
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+      #app-header, #chat-header {
+        padding: 12px 16px;
+      }
+
+      #chat {
+        padding: 16px;
+      }
+
+      #input-container {
+        padding: 12px 16px;
+      }
+
+      form {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      input[type=text] {
+        width: 100%;
+        min-width: auto;
+      }
+
+      .message-container {
+        max-width: 90%;
+      }
+
+      .avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+      }
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app-header">
+    <div id="app-title">Chat AI</div>
+  </div>
+
+  <div id="main-container">
+    <div id="chat-container">
+      <div id="chat-header">
+        <div id="chat-title">一个不完美的 AI</div>
+      </div>
+      <div id="chat">
+        <!-- 示例消息 -->
+
+        <div class="message-container ai-message">
+          <div class="avatar ai-avatar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 5H21V7H3V5ZM3 17H21V19H3V17ZM3 11H21V13H3V11Z" fill="white"/>
+            </svg>
+          </div>
+          <div class="message-content">
+            <div class="username">AI</div>
+            <div class="msg ai-msg">您好！有什么我可以为您协助的吗？如果有任何问题或需要帮助，随时告诉我！</div>
+          </div>
+        </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="input-container">
+    <form id="form">
+      <input type="text" id="inputText" placeholder="请输入你的问题…" autocomplete="off" />
+      <input type="file" id="uploadFile" accept="image/*" />
+      <select id="modelSelect">
+        <option value="openai">Chatgpt-4o</option>
+        <option value="claude">Claude</option>
+        <option value="gemini">Gemini</option>
+      </select>
+      <button type="submit">发送</button>
+      <button type="button" id="generateImageBtn">生成图片</button>
+    </form>
+  </div>
+
+  <div id="loading">
+    <div class="typing-indicator">
+      <span>AI 正在思考</span>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+  </div>
+
+<script>
+  const chat = document.getElementById("chat");
+  const form = document.getElementById("form");
+  const inputText = document.getElementById("inputText");
+  const modelSelect = document.getElementById("modelSelect");
+  const uploadFileInput = document.getElementById("uploadFile");
+  const generateImageBtn = document.getElementById("generateImageBtn");
+
+  let session_id = localStorage.getItem("session_id");
+  if (!session_id) {
+    session_id = crypto.randomUUID();
+    localStorage.setItem("session_id", session_id);
+  }
+
+  function escapeHTML(str) {
+    return str.replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
+  }
+
+  function appendText(div, text) {
+    const parts = text.split("\n");
+    parts.forEach((part, i) => {
+      div.appendChild(document.createTextNode(part));
+      if (i < parts.length - 1) {
+        div.appendChild(document.createElement("br"));
+      }
+    });
+  }
+
+  function appendCodeBlock(div, lang, code) {
+    const pre = document.createElement("pre");
+    pre.className = "code-block";
+    const strong = document.createElement("strong");
+    strong.textContent = lang || "代码";
+    pre.appendChild(strong);
+    pre.appendChild(document.createTextNode(code));
+    div.appendChild(pre);
+  }
+
+  function appendImage(div, src) {
+    const img = document.createElement("img");
+    img.src = src;
+    img.style.maxWidth = "100%";
+    img.style.borderRadius = "8px";
+    img.style.marginTop = "8px";
+    div.appendChild(img);
+  }
+
+  function createMessageElement(isUser, text) {
+    const container = document.createElement("div");
+    container.className = `message-container ${isUser ? 'user-message' : 'ai-message'}`;
+
+    const avatar = document.createElement("div");
+    avatar.className = `avatar ${isUser ? 'user-avatar' : 'ai-avatar'}`;
+
+    if (isUser) {
+      avatar.textContent = "你";
+    } else {
+      avatar.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 5H21V7H3V5ZM3 17H21V19H3V17ZM3 11H21V13H3V11Z" fill="white"/>
+      </svg>`;
+    }
+
+    const messageContent = document.createElement("div");
+    messageContent.className = "message-content";
+
+    const username = document.createElement("div");
+    username.className = "username";
+    username.textContent = isUser ? "你" : "AI助手";
+
+    const msg = document.createElement("div");
+    msg.className = `msg ${isUser ? 'user-msg' : 'ai-msg'}`;
+
+    const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
+    let lastIndex = 0;
+    let match;
+    while ((match = codeBlockRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        msg.appendChild(document.createTextNode(text.substring(lastIndex, match.index)));
+      }
+
+      const pre = document.createElement("pre");
+      pre.className = "code-block";
+      const strong = document.createElement("strong");
+      strong.textContent = match[1] || "代码";
+      pre.appendChild(strong);
+      pre.appendChild(document.createTextNode(match[2]));
+      msg.appendChild(pre);
+
+      lastIndex = codeBlockRegex.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      msg.appendChild(document.createTextNode(text.substring(lastIndex)));
+    }
+
+    messageContent.appendChild(username);
+    messageContent.appendChild(msg);
+
+    container.appendChild(avatar);
+    container.appendChild(messageContent);
+
+    return container;
+  }
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+
+    // 先检查是否有上传图片
+    if (uploadFileInput.files.length > 0) {
+      const file = uploadFileInput.files[0];
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        document.getElementById("loading").style.display = "block";
+
+        const uploadRes = await fetch("/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!uploadRes.ok) throw new Error("图片上传失败");
+        const uploadData = await uploadRes.json();
+
+        if (uploadData.error) {
+          const errorElement = createMessageElement(false, "⚠️ 图片上传错误：" + uploadData.error);
+          errorElement.querySelector('.msg').className = "msg error";
+          chat.appendChild(errorElement);
+          return;
+        }
+
+        const imageUrl = uploadData.url;
+
+        chat.appendChild(createMessageElement(true, "上传了一张图片"));
+
+        const messages = [
+          { type: "image_url", image_url: { url: imageUrl } }
+        ];
+
+        const model_provider = modelSelect.value;
+
+        const res = await fetch("/chat_stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id,
+            message: messages,
+            model_provider,
+          }),
+        });
+
+        if (!res.ok || !res.body) {
+          throw new Error("网络响应错误");
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        const responseContainer = createMessageElement(false, "");
+        chat.appendChild(responseContainer);
+        const responseMsg = responseContainer.querySelector('.msg');
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("data: ").filter(l => l.trim() !== "");
+          for (const line of lines) {
+            try {
+              const json = JSON.parse(line.trim());
+              if (json.error) {
+                const errorElement = createMessageElement(false, "⚠️ 出错：" + json.error);
+                errorElement.querySelector('.msg').className = "msg error";
+                chat.appendChild(errorElement);
+                return;
+              }
+              const delta = json.choices?.[0]?.delta?.content || "";
+
+              const tempDiv = document.createElement("div");
+              tempDiv.innerHTML = responseMsg.innerHTML + delta;
+              responseMsg.innerHTML = tempDiv.innerHTML;
+
+              chat.scrollTop = chat.scrollHeight;
+
+            } catch (e) {
+              console.warn("非标准流数据：", line);
+            }
+          }
+        }
+
+      } catch (err) {
+        const errorElement = createMessageElement(false, "⚠️ 网络错误：" + err.message);
+        errorElement.querySelector('.msg').className = "msg error";
+        chat.appendChild(errorElement);
+      } finally {
+        document.getElementById("loading").style.display = "none";
+        uploadFileInput.value = "";
+      }
+
+      return;
+    }
+
+    // 文本对话逻辑
+    const text = inputText.value.trim();
+    if (!text) return;
+
+    chat.appendChild(createMessageElement(true, text));
+
+    const messages = [{ type: "text", text }];
+    const model_provider = modelSelect.value;
+
+    document.getElementById("loading").style.display = "block";
+
+    try {
+      const res = await fetch("/chat_stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id,
+          message: messages,
+          model_provider,
+        }),
+      });
+
+      if (!res.ok || !res.body) {
+        throw new Error("网络响应错误");
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      const responseContainer = createMessageElement(false, "");
+      chat.appendChild(responseContainer);
+      const responseMsg = responseContainer.querySelector('.msg');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("data: ").filter(l => l.trim() !== "");
+        for (const line of lines) {
+          try {
+            const json = JSON.parse(line.trim());
+            if (json.error) {
+              const errorElement = createMessageElement(false, "⚠️ 出错：" + json.error);
+              errorElement.querySelector('.msg').className = "msg error";
+              chat.appendChild(errorElement);
+              return;
+            }
+            const delta = json.choices?.[0]?.delta?.content || "";
+
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = responseMsg.innerHTML + delta;
+            responseMsg.innerHTML = tempDiv.innerHTML;
+
+            chat.scrollTop = chat.scrollHeight;
+
+          } catch (e) {
+            console.warn("非标准流数据：", line);
+          }
+        }
+      }
+    } catch (err) {
+      const errorElement = createMessageElement(false, "⚠️ 网络错误：" + err.message);
+      errorElement.querySelector('.msg').className = "msg error";
+      chat.appendChild(errorElement);
+    } finally {
+      document.getElementById("loading").style.display = "none";
+      inputText.value = "";
+    }
+  };
+
+  // 新增：生成图片按钮点击事件
+  generateImageBtn.onclick = async () => {
+    const prompt = inputText.value.trim();
+    if (!prompt) {
+      const errorElement = createMessageElement(false, "⚠️ 请输入生成图片的描述文本");
+      errorElement.querySelector('.msg').className = "msg error";
+      chat.appendChild(errorElement);
+      return;
+    }
+
+    chat.appendChild(createMessageElement(true, "生成图片：" + prompt));
+    document.getElementById("loading").style.display = "block";
+
+    try {
+      const model_provider = modelSelect.value;
+
+      const res = await fetch("/generate_image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          n: 1,
+          size: "1024x1024",
+        }),
+      });
+
+      if (!res.ok) throw new Error("生成图片接口错误");
+      const data = await res.json();
+
+      if (data.error) {
+        const errorElement = createMessageElement(false, "⚠️ 生成图片出错：" + data.error);
+        errorElement.querySelector('.msg').className = "msg error";
+        chat.appendChild(errorElement);
+        return;
+      }
+
+      if (data.urls && data.urls.length > 0) {
+        const responseContainer = createMessageElement(false, "生成图片如下");
+        chat.appendChild(responseContainer);
+        const responseMsg = responseContainer.querySelector('.msg');
+
+        data.urls.forEach(url => {
+          const src = url.startsWith("http") ? url : window.location.origin + url;
+          const img = document.createElement("img");
+          img.src = src;
+          img.style.maxWidth = "100%";
+          img.style.borderRadius = "8px";
+          img.style.marginTop = "8px";
+          responseMsg.appendChild(img);
+        });
+      } else {
+        const errorElement = createMessageElement(false, "⚠️ 未收到有效的图片URL");
+        errorElement.querySelector('.msg').className = "msg error";
+        chat.appendChild(errorElement);
+      }
+
+    } catch (e) {
+      const errorElement = createMessageElement(false, "⚠️ 网络错误：" + e.message);
+      errorElement.querySelector('.msg').className = "msg error";
+      chat.appendChild(errorElement);
+    } finally {
+      document.getElementById("loading").style.display = "none";
+      inputText.value = "";
+    }
+  };
+
+  // 自动聚焦输入框
+  inputText.focus();
+</script>
+
+</body>
+</html>
